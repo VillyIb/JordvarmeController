@@ -1,0 +1,123 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<log4net>
+  <!-- see: http://logging.apache.org/log4net/release/manual/configuration.html -->
+  <!-- 
+    Default appender.
+  -->
+  <appender name="General" type="log4net.Appender.RollingFileAppender">
+    <file type="log4net.Util.PatternString" value="C:\GitRepositories\JordvarmeController\JordvarmeController\Logging\" />
+    <appendToFile value="True" />
+
+    <rollingStyle value="Date" />
+    <datePattern value="yyyy-MM-dd_HH'_General.log'" />
+    <staticLogFileName value="False" />
+
+    <!-- Customer Option Specify KB|MB|GB -->
+    <maximumFileSize value="10MB" />
+
+    <!-- Customer Option -->
+    <maxSizeRollBackups value="10" />
+
+    <immediateFlush value="True" />
+    <countDirection value="-1" />
+    <!-- lockingModel type="log4net.Appender.FileAppender+ExclusiveLock" / -->
+    <lockingModel type="log4net.Appender.FileAppender+MinimalLock" />
+
+    <!--<layout type="log4net.Layout.XmlLayoutSchemaLog4j">-->
+    <layout type="log4net.Layout.PatternLayout">
+      <!-- <conversionPattern value="%threadT %-5level [%property{Operation}] %utcdate{yyyy-MM-dd HH:mm:ss,fff} %ndc %logger{9}.%M:'%message'%newline" /> -->
+      <!--<conversionPattern value='%utcdate{yyyy-MM-dd HH:mm:ss,fff} B%-7thread %-7level [%property{TrackAlias}] %ndc ‡%logger{9}-%M:"%message"%newline' />-->
+      <conversionPattern value='%date{yyyy-MM-dd HH:mm:ss,fff} B%-7thread %-7level %ndc ‡%-45logger{9}-%-30M:"%message"%newline' />
+    </layout>
+
+  </appender>
+
+
+<!-- ERROR Appender - only log ERRORS and more serious levels -->
+ 
+  <appender name="Error" type="log4net.Appender.RollingFileAppender">
+    <file type="log4net.Util.PatternString" value="C:\GitRepositories\JordvarmeController\JordvarmeController\Logging\" />
+    <appendToFile value="True" />
+
+	<!-- Filter out levels less than Error -->
+	<filter type="log4net.Filter.LevelRangeFilter">
+		<levelMin value="ERROR" />
+		<levelMax value="OFF" />
+	</filter>
+	
+	<!-- Filter what levels to log for -->
+    <rollingStyle value="Date" />
+    <datePattern value="yyyy-MM-dd'_ERROR.log'" />
+    <staticLogFileName value="False" />
+
+    <!-- Customer Option Specify KB|MB|GB -->
+    <maximumFileSize value="10MB" />
+
+    <!-- Customer Option -->
+    <maxSizeRollBackups value="10" />
+
+    <immediateFlush value="True" />
+    <countDirection value="-1" />
+    <!-- lockingModel type="log4net.Appender.FileAppender+ExclusiveLock" / -->
+    <lockingModel type="log4net.Appender.FileAppender+MinimalLock" />
+
+    <!--<layout type="log4net.Layout.XmlLayoutSchemaLog4j">-->
+    <layout type="log4net.Layout.PatternLayout">
+      <!-- <conversionPattern value="%threadT %-5level [%property{Operation}] %utcdate{yyyy-MM-dd HH:mm:ss,fff} %ndc %logger{9}.%M:'%message'%newline" /> -->
+      <!--<conversionPattern value='%utcdate{yyyy-MM-dd HH:mm:ss,fff} B%-7thread %-7level [%property{TrackAlias}] %ndc ‡%logger{9}-%M:"%message"%newline' />-->
+      <conversionPattern value='%date{yyyy-MM-dd HH:mm:ss,fff} B%-7thread %-7level %ndc ‡%-45logger{9}-%-30M:"%message"%newline' />
+    </layout>
+
+  </appender>
+
+  <!-- Booster communication logging -->
+
+  <appender name="Booster" type="log4net.Appender.RollingFileAppender">
+
+    <!--- File name will be like: 'DHL_2014-12-31.log' -->
+
+    <file type="log4net.Util.PatternString" value="C:\GitRepositories\JordvarmeController\JordvarmeController\Logging\" />
+    <appendToFile value="True" />
+    <rollingStyle value="DATE" />
+    <datePattern value="yyyy-MM-dd'_Booster.log'" />
+    <immediateFlush value="True" />
+    <lockingModel type="log4net.Appender.FileAppender+MinimalLock" />
+    <staticLogFileName value="False" />
+
+    <!--<layout type="log4net.Layout.XmlLayoutSchemaLog4j">-->
+    <layout type="log4net.Layout.PatternLayout">
+      <!-- <conversionPattern value="%threadT %-5level [%property{Operation}] %utcdate{yyyy-MM-dd HH:mm:ss,fff} %ndc %logger{9}.%M:'%message'%newline" /> -->
+      <!--<conversionPattern value='%utcdate{yyyy-MM-dd HH:mm:ss,fff} B%-7thread %-7level [%property{TrackAlias}] %ndc ‡%logger{9}-%M:"%message"%newline' />-->
+      <conversionPattern value='%message%newline' />
+    </layout>
+  </appender>
+
+  <!-- LOGGERS -->
+  <!-- Standard levels: OFF|EMERGENCY|FATAL|ALERT|CRITICAL|SEVERE|ERROR|WARN|NOTICE|INFO|DEBUG|FINE|TRACE|FINER|VERBOSE|FINEST|ALL -->
+
+  <!-- The root logger is defining the default level -->
+  <root>
+    <!-- 
+      Notice for services is the Threshold set at runtime by a registry setting.
+      This requires the root level to be set at the most detailed level expected.
+    -->
+    <level value="All" />
+
+    <appender-ref ref="General" />
+	<appender-ref ref="Error" />  <!-- Extra appender only for level error+ -->
+  </root>
+
+  <!-- Explicit control the logging of program flow using the Tracer -->
+  <logger name="nu.gtx">
+    <level value="All" />
+  </logger>
+ 
+  
+
+  <logger name="Booster" additivity="False">
+    <level value="All" />
+    <appender-ref ref="Booster" />
+  </logger>
+
+  
+</log4net>
