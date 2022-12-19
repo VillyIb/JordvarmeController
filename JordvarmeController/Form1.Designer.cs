@@ -46,6 +46,7 @@
             this.XuAmplificationUp = new System.Windows.Forms.TextBox();
             this.label4 = new System.Windows.Forms.Label();
             this.XuSave = new System.Windows.Forms.Button();
+            this.XuLabelSpeedInfo = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // XuWeBrowser
@@ -61,7 +62,7 @@
             // 
             // XuLogin
             // 
-            this.XuLogin.Location = new System.Drawing.Point(25, 27);
+            this.XuLogin.Location = new System.Drawing.Point(922, 520);
             this.XuLogin.Name = "XuLogin";
             this.XuLogin.Size = new System.Drawing.Size(75, 23);
             this.XuLogin.TabIndex = 1;
@@ -71,7 +72,7 @@
             // 
             // XuSchema
             // 
-            this.XuSchema.Location = new System.Drawing.Point(25, 93);
+            this.XuSchema.Location = new System.Drawing.Point(922, 586);
             this.XuSchema.Name = "XuSchema";
             this.XuSchema.Size = new System.Drawing.Size(75, 23);
             this.XuSchema.TabIndex = 2;
@@ -81,7 +82,7 @@
             // 
             // XuAnalyzeDom
             // 
-            this.XuAnalyzeDom.Location = new System.Drawing.Point(25, 163);
+            this.XuAnalyzeDom.Location = new System.Drawing.Point(922, 656);
             this.XuAnalyzeDom.Name = "XuAnalyzeDom";
             this.XuAnalyzeDom.Size = new System.Drawing.Size(75, 23);
             this.XuAnalyzeDom.TabIndex = 3;
@@ -96,7 +97,7 @@
             // 
             // XuTimer1
             // 
-            this.XuTimer1.Location = new System.Drawing.Point(25, 239);
+            this.XuTimer1.Location = new System.Drawing.Point(922, 732);
             this.XuTimer1.Name = "XuTimer1";
             this.XuTimer1.Size = new System.Drawing.Size(75, 23);
             this.XuTimer1.TabIndex = 4;
@@ -106,7 +107,7 @@
             // 
             // XuStop
             // 
-            this.XuStop.Location = new System.Drawing.Point(25, 300);
+            this.XuStop.Location = new System.Drawing.Point(922, 793);
             this.XuStop.Name = "XuStop";
             this.XuStop.Size = new System.Drawing.Size(75, 23);
             this.XuStop.TabIndex = 5;
@@ -197,11 +198,21 @@
             this.XuSave.UseVisualStyleBackColor = true;
             this.XuSave.Click += new System.EventHandler(this.XuSave_Click);
             // 
+            // XuLabelSpeedInfo
+            // 
+            this.XuLabelSpeedInfo.AutoSize = true;
+            this.XuLabelSpeedInfo.Location = new System.Drawing.Point(286, 539);
+            this.XuLabelSpeedInfo.Name = "XuLabelSpeedInfo";
+            this.XuLabelSpeedInfo.Size = new System.Drawing.Size(95, 13);
+            this.XuLabelSpeedInfo.TabIndex = 15;
+            this.XuLabelSpeedInfo.Text = "XuLabelSpeedInfo";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1067, 874);
+            this.Controls.Add(this.XuLabelSpeedInfo);
             this.Controls.Add(this.XuSave);
             this.Controls.Add(this.XuAmplificationUp);
             this.Controls.Add(this.label4);
@@ -244,6 +255,7 @@
         private System.Windows.Forms.TextBox XuAmplificationUp;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Button XuSave;
+        private System.Windows.Forms.Label XuLabelSpeedInfo;
     }
 }
 

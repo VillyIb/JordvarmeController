@@ -76,7 +76,7 @@
 
     <!--- File name will be like: 'DHL_2014-12-31.log' -->
 
-    <file type="log4net.Util.PatternString" value="C:\GitRepositories\JordvarmeController\JordvarmeController\Logging\" />
+    <file type="log4net.Util.PatternString" value="C:\GitRepositories\JordvarmeController\JordvarmeController\BoosterLog\" />
     <appendToFile value="True" />
     <rollingStyle value="DATE" />
     <datePattern value="yyyy-MM-dd'_Booster.log'" />

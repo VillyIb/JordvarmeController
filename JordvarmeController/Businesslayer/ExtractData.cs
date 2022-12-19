@@ -47,7 +47,7 @@ namespace JordvarmeController.Businesslayer
                     const string xPath = "//div[@id='pos10']/a";
                     var t9 = Document.DocumentElement.SelectNodes(xPath);
                     if (t9 == null
-                        || t9.Count < 2)
+                        || t9.Count < 1)
                     {
                         throw new ArgumentException(xPath);
                     }
@@ -63,11 +63,16 @@ namespace JordvarmeController.Businesslayer
             }
         }
 
+        public float BoosterSpeedIn { get; set; }
 
-        public float BoosterSpeed { get; set; }
+
+        public float BoosterSpeedOut { get; set; }
 
 
         public int CrossFlow { get; set; }
+
+
+        public bool IsManualMode { get; set; }
 
 
         public float PressureIn { get; set; }
@@ -125,10 +130,24 @@ namespace JordvarmeController.Businesslayer
                     // <div id="pos10"><a href="javascript:loadChanger('11020C50180');">AUTO<br /> 3,90 V  </a>  </div>
                     const string xPath = "//div[@id='pos10']/a";
                     var t2 = Document.DocumentElement.SelectNodes(xPath);
-                    if (t2 == null || t2.Count < 2) { throw new ArgumentException(xPath); }
+                    if (t2 == null ) { throw new ArgumentException(xPath); }
 
-                    var t3 = t2[1].InnerXml.Substring(0).Replace("V", "");
-                    BoosterSpeed = float.TryParse(t3, out f1) ? f1 : -1f;
+                    if (t2.Count == 1)
+                    {
+                        // Auto mode
+                        var t3 = t2[0].LastChild.Value.Substring(0).Replace("V", "");
+                        BoosterSpeedIn = float.TryParse(t3, out f1) ? f1 : -1f;
+                        IsManualMode = false;
+                        BoosterSpeedOut = BoosterSpeedIn;
+                    }
+                    else
+                    {
+                        // Manual mode
+                        var t3 = t2[1].InnerXml.Substring(0).Replace("V", "");
+                        BoosterSpeedIn = float.TryParse(t3, out f1) ? f1 : -1f;
+                        IsManualMode = true;
+                        BoosterSpeedOut = BoosterSpeedIn;
+                    }
                 }
 
                 // Cross flow
@@ -145,11 +164,12 @@ namespace JordvarmeController.Businesslayer
                 // Pressure In
                 {
                     // <div id="pos8"> 1,14 bar  </div>
+                    // <div id="pos8">-99,99 bar  </div>
                     const string xPath = "//div[@id='pos8']";
                     var t2 = Document.DocumentElement.SelectSingleNode(xPath);
                     if (t2 == null) { throw new ArgumentException(xPath); }
 
-                    var t3 = t2.InnerXml.Substring(2).Replace("bar", "");
+                    var t3 = t2.InnerXml.Substring(1).Replace("bar", "");
                     PressureIn = float.TryParse(t3, out f1) ? f1 : -1f;
                 }
 
@@ -160,7 +180,7 @@ namespace JordvarmeController.Businesslayer
                     var t2 = Document.DocumentElement.SelectSingleNode(xPath);
                     if (t2 == null) { throw new ArgumentException(xPath); }
 
-                    var t3 = t2.InnerXml.Substring(2).Replace("bar", "");
+                    var t3 = t2.InnerXml.Substring(1).Replace("bar", "");
                     PressureOut = float.TryParse(t3, out f1) ? f1 : -1f;
                 }
 
@@ -241,15 +261,15 @@ namespace JordvarmeController.Businesslayer
         public bool IsValid()
         {
             return
-                BoosterSpeed.IsValid(-0.01f, 10.01f)
+                BoosterSpeedIn.IsValid(-0.01f, 10.01f)
                 && CrossFlow.IsValid(0, 200)
-                && PressureIn.IsValid(0.2f, 2.1f)
-                && PressureOut.IsValid(0.2f, 2.1f)
-                && TempAirIndoor.IsValid(-30f, 40f)
-                && TempAirOutdoor.IsValid(-30f, 40f)
-                && TempBrineIn.IsValid(-20f, 25f)
-                && TempBrineOut.IsValid(-20f, 25f)
-                && TimeStamp.IsValid(MinTimeValue, MaxTimeValue)
+                && PressureIn.IsValid(-100.00f, 2.1f)
+                && PressureOut.IsValid(0.00f, 2.1f)
+                //&& TempAirIndoor.IsValid(-30f, 40f)
+                //&& TempAirOutdoor.IsValid(-30f, 40f)
+                //&& TempBrineIn.IsValid(-20f, 25f)
+                //&& TempBrineOut.IsValid(-20f, 25f)
+                //&& TimeStamp.IsValid(MinTimeValue, MaxTimeValue)
             ;
         }
 
@@ -257,14 +277,14 @@ namespace JordvarmeController.Businesslayer
         public bool Equals(ExtractData other)
         {
             return
-                other.BoosterSpeed.IsEqualTo(BoosterSpeed, 0.001f)
+                other.BoosterSpeedIn.IsEqualTo(BoosterSpeedIn, 0.001f)
                  && other.CrossFlow == CrossFlow
                  && other.PressureIn.IsEqualTo(PressureIn, 0.001f)
                  && other.PressureOut.IsEqualTo(PressureOut, 0.001f)
-                 && other.TempAirIndoor.IsEqualTo(TempAirIndoor, 0.001f)
-                 && other.TempAirOutdoor.IsEqualTo(TempAirOutdoor, 0.001f)
-                 && other.TempBrineIn.IsEqualTo(TempBrineIn, 0.001f)
-                 && other.TempBrineOut.IsEqualTo(TempBrineOut, 0.001f)
+                 //&& other.TempAirIndoor.IsEqualTo(TempAirIndoor, 0.001f)
+                 //&& other.TempAirOutdoor.IsEqualTo(TempAirOutdoor, 0.001f)
+                 //&& other.TempBrineIn.IsEqualTo(TempBrineIn, 0.001f)
+                 //&& other.TempBrineOut.IsEqualTo(TempBrineOut, 0.001f)
                  && other.TimeStamp.Equals(TimeStamp)
             ;
         }
@@ -272,8 +292,8 @@ namespace JordvarmeController.Businesslayer
         public override string ToString()
         {
             return String.Format(
-                "Speed:{0:F}, CrossFlow: {1}, Pressue in: {2:F}, -out: {3:F}, TempAir indoor: {4:F1}, -outdoor: {5:F1}, TempBrine in: {6:F1}, - out: {7:F1}, Time: {8:c}"
-                , BoosterSpeed
+                "Speed:{0:F}, {9:F}, CrossFlow: {1}, Pressue in: {2:F}, -out: {3:F}, TempAir indoor: {4:F1}, -outdoor: {5:F1}, TempBrine in: {6:F1}, - out: {7:F1}, Time: {8:c}"
+                , BoosterSpeedIn
                 , CrossFlow
                 , PressureIn
                 , PressureOut
@@ -282,6 +302,7 @@ namespace JordvarmeController.Businesslayer
                 , TempBrineIn
                 , TempBrineOut
                 , TimeStamp
+                , BoosterSpeedOut
                 );
         }
     }

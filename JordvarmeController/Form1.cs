@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Windows.Forms;
 using System.Xml;
 using EU.Iamia.Logging;
@@ -226,23 +225,35 @@ namespace JordvarmeController
         }
 
 
-        private void Increase(float pdif)
+        private int Increase(float pdif)
         {
             int amplification;
             amplification = int.TryParse(XuAmplificationUp.Text, out amplification) ? amplification : 100;
 
             var dif = (int)(-pdif * amplification) + 1;
 
-            ChangeSpeed(Math.Min(200, CurrentIndex + dif));
+            var newValue = Math.Min(200, CurrentIndex + dif);
+
+            ChangeSpeed(newValue);
+
+            XuLabelSpeedInfo.Text = String.Format("Speed {0:F} -> {1:F}", CurrentIndex / 20.0f, newValue / 20.0f);
+
+            return newValue;
         }
 
-        private void Decrease(float pdif)
+        private int Decrease(float pdif)
         {
             int amplification;
             amplification = int.TryParse(XuAmplificationDown.Text, out amplification) ? amplification : 100;
 
             var dif = (int)(-pdif * amplification) - 1;
-            ChangeSpeed(Math.Max(20, CurrentIndex + dif));
+            var newValue = Math.Max(20, CurrentIndex + dif);
+
+            ChangeSpeed(newValue);
+
+            XuLabelSpeedInfo.Text = String.Format("Speed {0:F} -> {1:F}", CurrentIndex / 20.0f, newValue / 20.0f);
+
+            return newValue;
         }
 
         private void Keep()
@@ -257,9 +268,47 @@ namespace JordvarmeController
         }
 
 
+        DateTime TimestampLastWrite { get; set; }
+
+
+        private void Log(ExtractData value)
+        {
+            var fp = new CultureInfo("da");
+            var now = DateTime.UtcNow;
+
+            float offsett;
+
+            BoosterLog.InfoFormat(
+                fp
+                , "{0};{1,6:F};{19,6:F};{2,6:F};{3,6:F1};{4,6:F};{5,6:F};{6,6:F1};{7,6:F1};{8,6:F1};{9,6:F1};{10,6};{11,6:F2};{12,6:F2};{13,6:F2};{14,6:F2};{15,6:F2};{16,3};{17,3};{18}"
+                , value.TimeStamp
+                , value.BoosterSpeedIn
+                , (value.PressureOut - value.PressureIn) * 10
+                , value.CrossFlow / 10f
+                , value.PressureIn
+                , value.PressureOut
+                , value.TempBrineIn
+                , value.TempBrineOut
+                , value.TempAirIndoor
+                , value.TempAirOutdoor
+                , value.CrossFlow
+                , Math.Round(value.BoosterSpeedIn - Measurements[0].BoosterSpeedIn, 2)
+                , value.Offset * 10
+                , value.AmplificationUp / 100
+                , value.AmplificationDown / 100
+                , value.PressureOut - value.PressureIn - (float.TryParse(XuOffset.Text, out offsett) ? offsett : 0.07f) * 10
+                , CurrentIndex
+                , NewIndex
+                , value.IsManualMode ? "MAN" : "AUTO"
+                , value.BoosterSpeedOut
+            );
+            TimestampLastWrite = now;
+        }
 
         private void Analyze()
         {
+            var fp = new CultureInfo("da");
+
             try
             {
                 var iDoc = (mshtml.IHTMLDocument2)XuWeBrowser.Document.DomDocument;
@@ -272,11 +321,31 @@ namespace JordvarmeController
                         {
                             if (ed.IsValid())
                             {
-                                ed.Offset = float.Parse( XuOffset.Text, CultureInfo.CurrentUICulture);
+                                ed.Offset = float.Parse(XuOffset.Text, CultureInfo.CurrentUICulture);
                                 ed.AmplificationDown = float.Parse(XuAmplificationDown.Text, CultureInfo.CurrentUICulture);
                                 ed.AmplificationUp = float.Parse(XuAmplificationUp.Text, CultureInfo.CurrentUICulture);
 
                                 Measurements.Add(ed);
+
+                                if (ed.PressureOut < 0.1f)
+                                {
+                                    // System low pressure
+                                    if (ed.BoosterSpeedIn < 0.1) { return; } 
+                                    ChangeSpeed(0); // Full STOP
+                                    BoosterLog.DebugFormat(fp, "{0} FULL STOP, NO PRESSURE", ed.TimeStamp);
+                                    Log(ed);
+                                    return;
+                                }
+
+                                if (ed.PressureIn < 0.001f && ed.BoosterSpeedIn > 5.0f)
+                                {
+                                    // Overspeed
+                                    ChangeSpeed(100); // ½ speed
+                                    ed.BoosterSpeedOut = 5.0f;
+                                    BoosterLog.DebugFormat(fp, "{0} Overspeed, set to ½ speed", ed.TimeStamp);
+                                    Log(ed);
+                                    return;
+                                }
 
                                 if (Measurements.Count >= 2)
                                 {
@@ -286,17 +355,16 @@ namespace JordvarmeController
 
                                         var current = Measurements[1];
 
-                                        var fp = new CultureInfo("da");
 
                                         // Date changed.
                                         if (current.TimeStamp < new TimeSpan(0, 0, 30))
                                         {
-                                            BoosterLog.Info("LocalTime;Speed;PDiff*10;CrossFl/10;PIn;POut;TBIn;TBOut;TAIns;TAOuts;CrossFlow;Change;Offset;AmplUp;AmplDwn;ControlValue;Current;New;");
+                                            BoosterLog.Info("LocalTime;Speed;PDiff*10;CrossFl/10;PIn;POut;TBIn;TBOut;TAIns;TAOuts;CrossFlow;Change;Offset;AmplUp;AmplDwn;ControlValue;Current;New;Mode");
                                         }
 
 
                                         float offsett;
-                                        
+
                                         var pdif = current.PressureOut - current.PressureIn - (float.TryParse(XuOffset.Text, out offsett) ? offsett : 0.07f);
 
                                         float threshold;
@@ -305,46 +373,37 @@ namespace JordvarmeController
                                         var lowerThreshold = -threshold;
                                         var upperThreshold = threshold;
 
-                                        CurrentIndex = MapSpeedToIdex(current.BoosterSpeed);
+                                        CurrentIndex = MapSpeedToIdex(current.BoosterSpeedIn);
 
-                                        if (pdif < lowerThreshold)
+                                        if (ed.IsManualMode)
                                         {
-                                            // increase spead
-                                            Increase(pdif);
-                                        }
-                                        else if (pdif > upperThreshold)
-                                        {
-                                            // decrease speed
-                                            Decrease(pdif);
-                                        }
-                                        else
-                                        {
-                                            // keep speed.
-                                            Keep();
+                                            if (pdif < lowerThreshold)
+                                            {
+                                                // increase spead
+                                                //Log(current);
+                                                current.BoosterSpeedOut = Increase(pdif)/20.0f;
+                                                //Log(current);
+                                            }
+                                            else if (pdif > upperThreshold)
+                                            {
+                                                // decrease speed
+                                                //Log(current);
+                                                current.BoosterSpeedOut = Decrease(pdif)/20.0f;
+                                                //Log(current);
+                                            }
+                                            else
+                                            {
+                                                // keep speed.
+                                                //Keep();
+                                                current.BoosterSpeedOut = Decrease(0)/20.0f;
+                                            }
                                         }
 
-                                        BoosterLog.InfoFormat(
-                                            fp
-                                            , "{0};{1,6:F};{2,6:F};{3,6:F1};{4,6:F};{5,6:F};{6,6:F1};{7,6:F1};{8,6:F1};{9,6:F1};{10,6};{11,6:F2};{12,6:F2};{13,6:F2};{14,6:F2};{15,6:F2};{16,3};{17,3}"
-                                            , current.TimeStamp
-                                            , current.BoosterSpeed
-                                            , (current.PressureOut - current.PressureIn) * 10
-                                            , current.CrossFlow / 10f
-                                            , current.PressureIn
-                                            , current.PressureOut
-                                            , current.TempBrineIn
-                                            , current.TempBrineOut
-                                            , current.TempAirIndoor
-                                            , current.TempAirOutdoor
-                                            , current.CrossFlow
-                                            , Math.Round(current.BoosterSpeed - Measurements[0].BoosterSpeed, 2)
-                                            , current.Offset * 10
-                                            , current.AmplificationUp / 100
-                                            , current.AmplificationDown / 100
-                                            , pdif * 10
-                                            , CurrentIndex
-                                            , NewIndex
-                                        );
+                                        var now = DateTime.UtcNow;
+                                        if (now.Subtract(TimestampLastWrite).TotalSeconds > 20)
+                                        {
+                                            Log(current);
+                                        }
 
                                     }
 
@@ -396,7 +455,7 @@ namespace JordvarmeController
         {
             Analyze();
         }
-        
+
 
         private void XuTimer_Tick(object sender, EventArgs e)
         {
