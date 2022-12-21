@@ -47,6 +47,7 @@
             this.label4 = new System.Windows.Forms.Label();
             this.XuSave = new System.Windows.Forms.Button();
             this.XuLabelSpeedInfo = new System.Windows.Forms.Label();
+            this.XuLogWindow = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // XuWeBrowser
@@ -55,9 +56,10 @@
             this.XuWeBrowser.Location = new System.Drawing.Point(0, 0);
             this.XuWeBrowser.MinimumSize = new System.Drawing.Size(20, 20);
             this.XuWeBrowser.Name = "XuWeBrowser";
+            this.XuWeBrowser.ScriptErrorsSuppressed = true;
             this.XuWeBrowser.Size = new System.Drawing.Size(1067, 874);
             this.XuWeBrowser.TabIndex = 0;
-            this.XuWeBrowser.Url = new System.Uri("https://cmi.ta.co.at/webi/CMI004096/schema.html#1", System.UriKind.Absolute);
+            this.XuWeBrowser.Url = new System.Uri("https://cmi004096.cmi.ta.co.at/webi/schematic_files/1.cgi?_=1671478826623", System.UriKind.Absolute);
             this.XuWeBrowser.DocumentCompleted += new System.Windows.Forms.WebBrowserDocumentCompletedEventHandler(this.XuWeBrowser_DocumentCompleted);
             // 
             // XuLogin
@@ -117,7 +119,7 @@
             // 
             // XuDelay
             // 
-            this.XuDelay.Interval = 20000;
+            this.XuDelay.Interval = 10000;
             this.XuDelay.Tick += new System.EventHandler(this.XuDelay_Tick);
             // 
             // label1
@@ -207,11 +209,21 @@
             this.XuLabelSpeedInfo.TabIndex = 15;
             this.XuLabelSpeedInfo.Text = "XuLabelSpeedInfo";
             // 
+            // XuLogWindow
+            // 
+            this.XuLogWindow.Font = new System.Drawing.Font("Courier New", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.XuLogWindow.Location = new System.Drawing.Point(289, 574);
+            this.XuLogWindow.Multiline = true;
+            this.XuLogWindow.Name = "XuLogWindow";
+            this.XuLogWindow.Size = new System.Drawing.Size(614, 268);
+            this.XuLogWindow.TabIndex = 16;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1067, 874);
+            this.Controls.Add(this.XuLogWindow);
             this.Controls.Add(this.XuLabelSpeedInfo);
             this.Controls.Add(this.XuSave);
             this.Controls.Add(this.XuAmplificationUp);
@@ -256,6 +268,7 @@
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Button XuSave;
         private System.Windows.Forms.Label XuLabelSpeedInfo;
+        private System.Windows.Forms.TextBox XuLogWindow;
     }
 }
 

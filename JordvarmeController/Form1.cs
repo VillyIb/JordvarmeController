@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Globalization;
+using System.IO;
+using System.Threading;
 using System.Windows.Forms;
 using System.Xml;
 using EU.Iamia.Logging;
@@ -10,8 +13,8 @@ namespace JordvarmeController
 {
     public partial class Form1 : Form
     {
-        private static readonly ILog Logger = LogManager.GetLogger("eu.iamia.JordvarmeController.Form1");
-        private static readonly ILog BoosterLog = LogManager.GetLogger("Booster");
+        //private static readonly ILog Logger = LogManager.GetLogger("eu.iamia.JordvarmeController.Form1");
+        //private static readonly ILog BoosterLog = LogManager.GetLogger("Booster");
 
         private int RetryCount { get; set; }
 
@@ -44,13 +47,18 @@ namespace JordvarmeController
         {
             XuStop_Click(sender, e);
             XuWeBrowser.Url = new Uri("https://cmi.ta.co.at/portal/ta/loginformular/");
+            //XuWeBrowser.Url = new Uri("https://cmi004096.cmi.ta.co.at/webi/schema.html#1");
         }
 
         private void XuSchema_Click(object sender, EventArgs e)
         {
             XuStop_Click(sender, e);
-            XuWeBrowser.Url = new Uri("https://cmi.ta.co.at/webi/CMI004096/schema.html#1");
+            //XuWeBrowser.Url = new Uri("https://cmi.ta.co.at/webi/CMI004096/schema.html#1");
+            //XuWeBrowser.Url = new Uri("https://cmi004096.cmi.ta.co.at/webi/schema.html#1");
+            XuWeBrowser.Url = new Uri("https://cmi004096.cmi.ta.co.at/webi/schematic_files/1.cgi?_=1671478826623");
+
             //XuWeBrowser.Refresh();
+            //XuWeBrowser.Navigate(XuWeBrowser.Url);
         }
 
         #region unused
@@ -153,7 +161,7 @@ namespace JordvarmeController
                     var msg =
                         $"{DateTime.UtcNow:HH:mm:ss};{speed:F};{(pressureOut - pressureIn) * 10:F};{Math.Min(99f, crossFlow) / 10f:F1};{pressureIn:F};{pressureOut:F};{tempBrineIn:F1};{tempBrineOut:f1};{tempAirIndor:F1};{tempAirOutdor:F1};{crossFlow}";
 
-                    BoosterLog.Info(msg);
+                    //BoosterLog.Info(msg);
 
                     var t19 = t14;
                 }
@@ -190,7 +198,8 @@ namespace JordvarmeController
         {
             NewIndex = null;
 
-            if (0 <= index && index <= 200 && BypassChanges-- <= 0)
+            //if (0 <= index && index <= 200 && BypassChanges-- <= 0)
+            if (0 <= index && index <= 200)
             {
                 NewIndex = (CurrentIndex != index) ? (int?)index : null;
 
@@ -201,16 +210,26 @@ namespace JordvarmeController
                 ////    Measurements.RemoveAt(0);
                 ////}
 
+                // https://cmi004096.cmi.ta.co.at/webi/INCLUDE/change.cgi?changeadr=01B51020C7&changeto=122&_=1671478826772
+                // https://cmi004096.cmi.ta.co.at/webi/INCLUDE/change.cgi?changeadr=01B51020C7&changeto=80&_=1671478826789
+
+                //var uri = String.Format(
+                //    "https://cmi.ta.co.at/webi/CMI004096/change.cgi?changeadr=01B51020C7&changeto={0}"
+                //    , index
+                //);
                 var uri = String.Format(
-                        "https://cmi.ta.co.at/webi/CMI004096/change.cgi?changeadr=01B51020C7&changeto={0}"
-                        , index
-                    );
+                    "https://cmi004096.cmi.ta.co.at/webi/INCLUDE/change.cgi?changeadr=01B51020C7&changeto={0}"
+                    , index
+                );
                 XuWeBrowser.Url = new Uri(uri);
+                //XuWeBrowser.Navigate(XuWeBrowser.Url);
                 //XuWeBrowser.Refresh();
 
                 MustRefresh = true;
 
                 BypassChanges = 1;
+
+                EnableAnalyze = false;
             }
         }
 
@@ -236,7 +255,10 @@ namespace JordvarmeController
 
             ChangeSpeed(newValue);
 
-            XuLabelSpeedInfo.Text = String.Format("Speed {0:F} -> {1:F}", CurrentIndex / 20.0f, newValue / 20.0f);
+            XuLabelSpeedInfo.Text = String.Format("+Speed {0:F} -> {1:F}", CurrentIndex / 20.0f, newValue / 20.0f);
+            XuLabelSpeedInfo.ForeColor = Color.Red;
+
+            XuLogWindow.Text = $"\r\n{DateTime.Now:mm:ss} +Speed {CurrentIndex / 20.0f:F} -> {newValue / 20.0f:F}{XuLogWindow.Text}";
 
             return newValue;
         }
@@ -251,7 +273,10 @@ namespace JordvarmeController
 
             ChangeSpeed(newValue);
 
-            XuLabelSpeedInfo.Text = String.Format("Speed {0:F} -> {1:F}", CurrentIndex / 20.0f, newValue / 20.0f);
+            XuLabelSpeedInfo.Text = String.Format("-Speed {0:F} -> {1:F}", CurrentIndex / 20.0f, newValue / 20.0f);
+            XuLabelSpeedInfo.ForeColor = Color.Green;
+
+            XuLogWindow.Text = $"\r\n{DateTime.Now:mm:ss} -Speed {CurrentIndex / 20.0f:F} -> {newValue / 20.0f:F}{XuLogWindow.Text}";
 
             return newValue;
         }
@@ -278,30 +303,30 @@ namespace JordvarmeController
 
             float offsett;
 
-            BoosterLog.InfoFormat(
-                fp
-                , "{0};{1,6:F};{19,6:F};{2,6:F};{3,6:F1};{4,6:F};{5,6:F};{6,6:F1};{7,6:F1};{8,6:F1};{9,6:F1};{10,6};{11,6:F2};{12,6:F2};{13,6:F2};{14,6:F2};{15,6:F2};{16,3};{17,3};{18}"
-                , value.TimeStamp
-                , value.BoosterSpeedIn
-                , (value.PressureOut - value.PressureIn) * 10
-                , value.CrossFlow / 10f
-                , value.PressureIn
-                , value.PressureOut
-                , value.TempBrineIn
-                , value.TempBrineOut
-                , value.TempAirIndoor
-                , value.TempAirOutdoor
-                , value.CrossFlow
-                , Math.Round(value.BoosterSpeedIn - Measurements[0].BoosterSpeedIn, 2)
-                , value.Offset * 10
-                , value.AmplificationUp / 100
-                , value.AmplificationDown / 100
-                , value.PressureOut - value.PressureIn - (float.TryParse(XuOffset.Text, out offsett) ? offsett : 0.07f) * 10
-                , CurrentIndex
-                , NewIndex
-                , value.IsManualMode ? "MAN" : "AUTO"
-                , value.BoosterSpeedOut
-            );
+            //BoosterLog.InfoFormat(
+            //    fp
+            //    , "{0};{1,6:F};{19,6:F};{2,6:F};{3,6:F1};{4,6:F};{5,6:F};{6,6:F1};{7,6:F1};{8,6:F1};{9,6:F1};{10,6};{11,6:F2};{12,6:F2};{13,6:F2};{14,6:F2};{15,6:F2};{16,3};{17,3};{18}"
+            //    , value.TimeStamp
+            //    , value.BoosterSpeedIn
+            //    , (value.PressureOut - value.PressureIn) * 10
+            //    , value.CrossFlow / 10f
+            //    , value.PressureIn
+            //    , value.PressureOut
+            //    , value.TempBrineIn
+            //    , value.TempBrineOut
+            //    , value.TempAirIndoor
+            //    , value.TempAirOutdoor
+            //    , value.CrossFlow
+            //    , Math.Round(value.BoosterSpeedIn - Measurements[0].BoosterSpeedIn, 2)
+            //    , value.Offset * 10
+            //    , value.AmplificationUp / 100
+            //    , value.AmplificationDown / 100
+            //    , value.PressureOut - value.PressureIn - (float.TryParse(XuOffset.Text, out offsett) ? offsett : 0.07f) * 10
+            //    , CurrentIndex
+            //    , NewIndex
+            //    , value.IsManualMode ? "MAN" : "AUTO"
+            //    , value.BoosterSpeedOut
+            //);
             TimestampLastWrite = now;
         }
 
@@ -314,13 +339,21 @@ namespace JordvarmeController
                 var iDoc = (mshtml.IHTMLDocument2)XuWeBrowser.Document.DomDocument;
                 if (iDoc != null)
                 {
-                    var ed = new ExtractData { OuterHtmlSource = iDoc.body.outerHTML };
+                    var t1 = iDoc;
+                    var t2 = iDoc.body;
+                    var t3 = t2.outerHTML;
+
+
+                    var ed = new ExtractData();
+                    ed.OuterHtmlSource = t3;
                     if (ed.TryParse())
                     {
                         if (ed.TryAnalyzeXml())
                         {
                             if (ed.IsValid())
                             {
+                                XuLogWindow.Text = $".{XuLogWindow.Text}";
+
                                 ed.Offset = float.Parse(XuOffset.Text, CultureInfo.CurrentUICulture);
                                 ed.AmplificationDown = float.Parse(XuAmplificationDown.Text, CultureInfo.CurrentUICulture);
                                 ed.AmplificationUp = float.Parse(XuAmplificationUp.Text, CultureInfo.CurrentUICulture);
@@ -330,9 +363,9 @@ namespace JordvarmeController
                                 if (ed.PressureOut < 0.1f)
                                 {
                                     // System low pressure
-                                    if (ed.BoosterSpeedIn < 0.1) { return; } 
+                                    if (ed.BoosterSpeedIn < 0.1) { return; }
                                     ChangeSpeed(0); // Full STOP
-                                    BoosterLog.DebugFormat(fp, "{0} FULL STOP, NO PRESSURE", ed.TimeStamp);
+                                    //BoosterLog.DebugFormat(fp, "{0} FULL STOP, NO PRESSURE", ed.TimeStamp);
                                     Log(ed);
                                     return;
                                 }
@@ -342,14 +375,14 @@ namespace JordvarmeController
                                     // Overspeed
                                     ChangeSpeed(100); // ½ speed
                                     ed.BoosterSpeedOut = 5.0f;
-                                    BoosterLog.DebugFormat(fp, "{0} Overspeed, set to ½ speed", ed.TimeStamp);
+                                    //BoosterLog.DebugFormat(fp, "{0} Overspeed, set to ½ speed", ed.TimeStamp);
                                     Log(ed);
                                     return;
                                 }
 
                                 if (Measurements.Count >= 2)
                                 {
-                                    if (!(Measurements[0].Equals(Measurements[1])))
+                                    //if (!(Measurements[0].Equals(Measurements[1])))
                                     {
                                         // Measurement changed
 
@@ -359,13 +392,14 @@ namespace JordvarmeController
                                         // Date changed.
                                         if (current.TimeStamp < new TimeSpan(0, 0, 30))
                                         {
-                                            BoosterLog.Info("LocalTime;Speed;PDiff*10;CrossFl/10;PIn;POut;TBIn;TBOut;TAIns;TAOuts;CrossFlow;Change;Offset;AmplUp;AmplDwn;ControlValue;Current;New;Mode");
+                                            //BoosterLog.Info("LocalTime;Speed;PDiff*10;CrossFl/10;PIn;POut;TBIn;TBOut;TAIns;TAOuts;CrossFlow;Change;Offset;AmplUp;AmplDwn;ControlValue;Current;New;Mode");
                                         }
 
 
                                         float offsett;
+                                        var correction = float.TryParse(XuOffset.Text, out offsett) ? offsett : 0.07f;
 
-                                        var pdif = current.PressureOut - current.PressureIn - (float.TryParse(XuOffset.Text, out offsett) ? offsett : 0.07f);
+                                        var pdif = current.PressureOut - current.PressureIn - correction;
 
                                         float threshold;
                                         threshold = float.TryParse(XuThreshold.Text, out threshold) ? threshold : 0.011f;
@@ -380,22 +414,26 @@ namespace JordvarmeController
                                             if (pdif < lowerThreshold)
                                             {
                                                 // increase spead
+
+                                                XuLogWindow.Text = $"\r\n{DateTime.Now:mm:ss} +Pdif: {pdif} = Pout: {current.PressureOut} - Pin:{current.PressureIn} - Correction: {correction} {XuLogWindow.Text}";
+
                                                 //Log(current);
-                                                current.BoosterSpeedOut = Increase(pdif)/20.0f;
+                                                current.BoosterSpeedOut = Increase(pdif) / 20.0f;
                                                 //Log(current);
                                             }
                                             else if (pdif > upperThreshold)
                                             {
                                                 // decrease speed
+                                                XuLogWindow.Text = $"\r\n{DateTime.Now:mm:ss} -Pdif: {pdif} = Pout: {current.PressureOut} - Pin:{current.PressureIn} - Correction: {correction} {XuLogWindow.Text}";
                                                 //Log(current);
-                                                current.BoosterSpeedOut = Decrease(pdif)/20.0f;
+                                                current.BoosterSpeedOut = Decrease(pdif) / 20.0f;
                                                 //Log(current);
                                             }
                                             else
                                             {
                                                 // keep speed.
                                                 //Keep();
-                                                current.BoosterSpeedOut = Decrease(0)/20.0f;
+                                                current.BoosterSpeedOut = Decrease(0) / 20.0f;
                                             }
                                         }
 
@@ -406,6 +444,10 @@ namespace JordvarmeController
                                         }
 
                                     }
+                                    //else
+                                    //{
+                                    //    XuLabelSpeedInfo.Text = "";
+                                    //}
 
                                     // strip off older measurements
                                     while (Measurements.Count > 1)
@@ -417,8 +459,8 @@ namespace JordvarmeController
                             else
                             {
                                 // ranges outside limits
-                                Logger.WarnFormat("Measuremen outside limits: {0}", ed);
-                                Logger.DebugFormat("HTML: {0}", iDoc.body.outerHTML);
+                                //Logger.WarnFormat("Measuremen outside limits: {0}", ed);
+                                //Logger.DebugFormat("HTML: {0}", iDoc.body.outerHTML);
                             }
                         }
                         else
@@ -430,7 +472,7 @@ namespace JordvarmeController
                     else
                     {
                         // unable to parse 
-                        Logger.WarnFormat("Unable to parse Xml: \r\n{0}\r\n", iDoc.body.outerHTML);
+                        //Logger.WarnFormat("Unable to parse Xml: \r\n{0}\r\n", iDoc.body.outerHTML);
 
                         // Try reload page.
                         if (RetryCount-- > 0)
@@ -446,7 +488,7 @@ namespace JordvarmeController
             }
             catch (Exception ex)
             {
-                Logger.Error("", ex);
+                //Logger.Error("", ex);
             }
         }
 
@@ -457,12 +499,16 @@ namespace JordvarmeController
         }
 
 
+        public bool EnableAnalyze { get; set; }
+
         private void XuTimer_Tick(object sender, EventArgs e)
         {
-            XuAnalyzeDom_Click(sender, e);
+            XuSchema_Click(sender, e);
+            //XuAnalyzeDom_Click(sender, e);
+            EnableAnalyze = true;
             if (Restart)
             {
-                Logger.Error("\r\n\r\nRestarting\r\n\r\n");
+                //Logger.Error("\r\n\r\nRestarting\r\n\r\n");
                 Close();
             }
         }
@@ -505,21 +551,50 @@ namespace JordvarmeController
         }
 
 
+        private void Window_Error(object sender, HtmlElementErrorEventArgs e)
+        {
+            // Ignore the error and suppress the error dialog box. 
+            e.Handled = true;
+        }
+
         private void XuWeBrowser_DocumentCompleted(object sender, WebBrowserDocumentCompletedEventArgs e)
         {
-            //var t1 = sender.GetType().Name;
+            ((WebBrowser)sender).Document.Window.Error += new HtmlElementErrorEventHandler(Window_Error);
 
-            //var browser = sender as WebBrowser;
+            var t1 = sender.GetType().Name;
 
-            //var ds = browser.DocumentStream;
+            var browser = sender as WebBrowser;
 
-            //ds.Seek(0L, System.IO.SeekOrigin.Begin);
+            var ds = browser.DocumentStream;
 
-            //var sr = new StreamReader(ds);
+            ds.Seek(0L, System.IO.SeekOrigin.Begin);
 
-            //var data = sr.ReadToEnd();
+            var sr = new StreamReader(ds);
 
-            //var tx = data;
+            var data = sr.ReadToEnd().TrimStart();
+
+            XuLogWindow.Text = $"\r\n{DateTime.Now:mm:ss} {data.Substring(0, Math.Min(5, data.Length)).Replace("\r\n", "")} {XuLogWindow.Text}";
+            XuLogWindow.Text = XuLogWindow.Text.Substring(0, Math.Min(XuLogWindow.Text.Length, 500));
+
+            if (data.StartsWith("<div id=\"pos0\">") && EnableAnalyze)
+            {
+                Analyze();
+                return;
+            }
+
+            if (data.StartsWith("<div class=\"alert alert-danger\">The interface"))
+            {
+                Thread.Sleep(5000);
+                XuSchema_Click(sender, e);
+            }
+
+            //if (data.StartsWith("OK"))
+            //{
+            //    XuStop_Click(sender, e);
+            //    //Thread.Sleep(10000);
+            //}
+
+            var tx = data;
             if (MustRefresh)
             {
                 XuSchema_Click(sender, e);
@@ -530,6 +605,8 @@ namespace JordvarmeController
                 RetryCount = 0;
                 XuTimer1_Click(sender, e);
             }
+
+
         }
 
 

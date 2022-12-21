@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Xml;
 using EU.Iamia.Logging;
 
@@ -7,39 +8,47 @@ namespace JordvarmeController.Businesslayer
 {
     public class ExtractData : IEquatable<ExtractData>
     {
-        public static readonly ILog Logger = LogManager.GetLogger();
+        //public static readonly ILog Logger = LogManager.GetLogger();
 
         public String OuterHtmlSource { get; set; }
 
         private XmlDocument Document { get; set; }
+
+        public bool TryParse()
+        {
+            return true;
+        }
 
         /// <summary>
         /// Convert OuterHtml to XmlDocument.
         /// A return value indcates the succes of the operation.
         /// </summary>
         /// <returns></returns>
-        public bool TryParse()
+        public bool TryParsex()
         {
+
+            // Convert OuterhHtml to an Xml document.
+            var t1 = $"<?xml version=\"1.0\" encoding=\"utf-8\" ?> {OuterHtmlSource}";
+
+            // Fix known defects in document.
+
+            // Non terminated newlind
+            var t2 = t1.Replace("<br>", "<br />").Replace("<BR>", "<BR />");
+
+            // Non terminated img
+            var t3 = t2.Replace("png\">", "png\" />");
+
+            // Non terminated imput
+            var t4 = t3.Replace("</select>", "</select></input>");
+
+            var t5 = t4.Replace("nbsp;", ""); // HTML not supported by XML
+
+            var t6 = t5.Replace("\"();", "();\"");
+
             try
             {
-                // Convert OuterhHtml to an Xml document.
-                var t1 = $"<?xml version=\"1.0\" encoding=\"utf-8\" ?> {OuterHtmlSource}";
-
-                // Fix known defects in document.
-
-                // Non terminated newlind
-                var t2 = t1.Replace("<br>", "<br />");
-
-                // Non terminated img
-                var t3 = t2.Replace("png\">", "png\" />");
-
-                // Non terminated imput
-                var t4 = t3.Replace("</select>", "</select></input>");
-
-                var t5 = t4.Replace("nbsp;", ""); // HTML not supported by XML
-
                 Document = new XmlDocument();
-                Document.LoadXml(t5); // XmlException
+                Document.LoadXml(t6); // XmlException
 
                 // try reading first dataset 
                 if (Document.DocumentElement != null)
@@ -58,7 +67,7 @@ namespace JordvarmeController.Businesslayer
             catch (Exception ex)
             {
                 var msg = $"OuterHtmlSource: '{OuterHtmlSource}'";
-                Logger.Error(msg, ex);
+                //Logger.Error(msg, ex);
                 return false;
             }
         }
@@ -99,11 +108,42 @@ namespace JordvarmeController.Businesslayer
 
         public float AmplificationUp { get; set; }
 
-        public float AmplificationDown { get; set; }     
+        public float AmplificationDown { get; set; }
 
         private int IgnoreError { get; set; }
 
+        private string Extract(string lookFor, string until)
+        {
+            var foundPosition = OuterHtmlSource.IndexOf(lookFor, StringComparison.OrdinalIgnoreCase);
+            if (foundPosition < 0) return null;
+
+            var startPosition = foundPosition + lookFor.Length;
+            var endPosition = OuterHtmlSource.IndexOf(until, startPosition, StringComparison.InvariantCultureIgnoreCase);
+
+            var length = endPosition - startPosition;
+
+            var result =  OuterHtmlSource.Substring(startPosition, length);
+            return result;
+        }
+
         public bool TryAnalyzeXml()
+        {
+            var provider = CultureInfo.GetCultureInfo("da-DK");
+
+            this.BoosterSpeedIn = float.Parse(Extract("<DIV id=pos10><A href=\"javascript:loadChanger('11020C50180');\">MAN</A><BR><A href=\"javascript:loadChanger('01020C701');\">", "V </A></DIV>"),provider);
+            this.CrossFlow= int.Parse(Extract("<DIV id=pos5>~ ", " l/h </DIV>"));
+            this.PressureIn = float.Parse(Extract("<DIV id=pos8>", " bar </DIV>"), provider);
+            this.PressureOut = float.Parse(Extract("<DIV id=pos9>", " bar </DIV>"), provider);
+            this.TempAirIndoor = float.Parse(Extract("<DIV id=pos2>Inde:", "°C </DIV>"), provider);
+            this.TempAirOutdoor = float.Parse(Extract("<DIV id=pos4>Ude:", "°C </DIV>"), provider);
+            this.TempBrineIn = float.Parse(Extract("<DIV id=pos7>", "°C </DIV>"), provider);
+            this.TempBrineOut = float.Parse(Extract("<DIV id=pos6>", "°C </DIV>"), provider);
+            this.IsManualMode = true;
+
+            return true;
+        }
+
+        public bool TryAnalyzeXmlX()
         {
             Debug.Assert(Document != null, "Document != null");
             Debug.Assert(Document.DocumentElement != null, "Document.DocumentElement!=null");
@@ -113,7 +153,7 @@ namespace JordvarmeController.Businesslayer
             {
                 if (IgnoreError-- <= 0)
                 {
-                    Logger.DebugFormat("Unable to parse document {0}", Document.DocumentElement.InnerXml);
+                    //Logger.DebugFormat("Unable to parse document {0}", Document.DocumentElement.InnerXml);
                     IgnoreError = 14; // Number of retry withn one GUI refresh cycle (30 sec / 2sec) -1.
                 }
                 return false;
@@ -130,7 +170,7 @@ namespace JordvarmeController.Businesslayer
                     // <div id="pos10"><a href="javascript:loadChanger('11020C50180');">AUTO<br /> 3,90 V  </a>  </div>
                     const string xPath = "//div[@id='pos10']/a";
                     var t2 = Document.DocumentElement.SelectNodes(xPath);
-                    if (t2 == null ) { throw new ArgumentException(xPath); }
+                    if (t2 == null) { throw new ArgumentException(xPath); }
 
                     if (t2.Count == 1)
                     {
@@ -239,13 +279,13 @@ namespace JordvarmeController.Businesslayer
                     DateTime d1;
                     TimeStamp = (DateTime.TryParse(t3, out d1) ? d1 : DateTime.Now).TimeOfDay;
                 }
-                
+
                 return true;
             }
             catch (Exception ex)
             {
-                Logger.Error("", ex);
-                Logger.WarnFormat("XML: \r\n{0}\r\n", Document.DocumentElement.InnerXml);
+                //Logger.Error("", ex);
+                //Logger.WarnFormat("XML: \r\n{0}\r\n", Document.DocumentElement.InnerXml);
                 return false;
             }
         }
@@ -265,11 +305,11 @@ namespace JordvarmeController.Businesslayer
                 && CrossFlow.IsValid(0, 200)
                 && PressureIn.IsValid(-100.00f, 2.1f)
                 && PressureOut.IsValid(0.00f, 2.1f)
-                //&& TempAirIndoor.IsValid(-30f, 40f)
-                //&& TempAirOutdoor.IsValid(-30f, 40f)
-                //&& TempBrineIn.IsValid(-20f, 25f)
-                //&& TempBrineOut.IsValid(-20f, 25f)
-                //&& TimeStamp.IsValid(MinTimeValue, MaxTimeValue)
+            //&& TempAirIndoor.IsValid(-30f, 40f)
+            //&& TempAirOutdoor.IsValid(-30f, 40f)
+            //&& TempBrineIn.IsValid(-20f, 25f)
+            //&& TempBrineOut.IsValid(-20f, 25f)
+            //&& TimeStamp.IsValid(MinTimeValue, MaxTimeValue)
             ;
         }
 

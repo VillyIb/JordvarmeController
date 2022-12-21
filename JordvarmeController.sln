@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33110.190
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JordvarmeController", "JordvarmeController\JordvarmeController.csproj", "{C8130915-A41C-4381-B355-D87573927510}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EU.Iamia.Logging", "..\EU.Iamia.Logging\EU.Iamia.Logging\EU.Iamia.Logging.csproj", "{A489846E-1759-418C-AF19-DB598776099C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,8 +17,15 @@ Global
 		{C8130915-A41C-4381-B355-D87573927510}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C8130915-A41C-4381-B355-D87573927510}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C8130915-A41C-4381-B355-D87573927510}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A489846E-1759-418C-AF19-DB598776099C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A489846E-1759-418C-AF19-DB598776099C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A489846E-1759-418C-AF19-DB598776099C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A489846E-1759-418C-AF19-DB598776099C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {368B4180-B4D6-41B0-B435-EF6108D8694A}
 	EndGlobalSection
 EndGlobal
