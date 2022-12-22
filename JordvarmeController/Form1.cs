@@ -55,6 +55,8 @@ namespace JordvarmeController
             XuStop_Click(sender, e);
             //XuWeBrowser.Url = new Uri("https://cmi.ta.co.at/webi/CMI004096/schema.html#1");
             //XuWeBrowser.Url = new Uri("https://cmi004096.cmi.ta.co.at/webi/schema.html#1");
+
+            // settintg the URL triggers a navigate operation. see:https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.webbrowser.navigated?view=windowsdesktop-7.0#remarks
             XuWeBrowser.Url = new Uri("https://cmi004096.cmi.ta.co.at/webi/schematic_files/1.cgi?_=1671478826623");
 
             //XuWeBrowser.Refresh();
@@ -258,7 +260,7 @@ namespace JordvarmeController
             XuLabelSpeedInfo.Text = String.Format("+Speed {0:F} -> {1:F}", CurrentIndex / 20.0f, newValue / 20.0f);
             XuLabelSpeedInfo.ForeColor = Color.Red;
 
-            XuLogWindow.Text = $"\r\n{DateTime.Now:mm:ss} +Speed {CurrentIndex / 20.0f:F} -> {newValue / 20.0f:F}{XuLogWindow.Text}";
+            XuLogWindow.Text = $"\r\n{DateTime.Now:hh:mm:ss} +Speed {CurrentIndex / 20.0f:F} -> {newValue / 20.0f:F}{XuLogWindow.Text}";
 
             return newValue;
         }
@@ -276,7 +278,7 @@ namespace JordvarmeController
             XuLabelSpeedInfo.Text = String.Format("-Speed {0:F} -> {1:F}", CurrentIndex / 20.0f, newValue / 20.0f);
             XuLabelSpeedInfo.ForeColor = Color.Green;
 
-            XuLogWindow.Text = $"\r\n{DateTime.Now:mm:ss} -Speed {CurrentIndex / 20.0f:F} -> {newValue / 20.0f:F}{XuLogWindow.Text}";
+            XuLogWindow.Text = $"\r\n{DateTime.Now:hh:mm:ss} -Speed {CurrentIndex / 20.0f:F} -> {newValue / 20.0f:F}{XuLogWindow.Text}";
 
             return newValue;
         }
@@ -415,25 +417,29 @@ namespace JordvarmeController
                                             {
                                                 // increase spead
 
-                                                XuLogWindow.Text = $"\r\n{DateTime.Now:mm:ss} +Pdif: {pdif} = Pout: {current.PressureOut} - Pin:{current.PressureIn} - Correction: {correction} {XuLogWindow.Text}";
+                                                XuLogWindow.Text = $"\r\n{DateTime.Now:hh:mm:ss} up   {lowerThreshold} > Pdif: {pdif} = Pout: {current.PressureOut} - Pin:{current.PressureIn} - Correction: {correction} {XuLogWindow.Text}";
 
                                                 //Log(current);
                                                 current.BoosterSpeedOut = Increase(pdif) / 20.0f;
                                                 //Log(current);
+                                                this.XuDelay.Interval = 10000;
                                             }
                                             else if (pdif > upperThreshold)
                                             {
                                                 // decrease speed
-                                                XuLogWindow.Text = $"\r\n{DateTime.Now:mm:ss} -Pdif: {pdif} = Pout: {current.PressureOut} - Pin:{current.PressureIn} - Correction: {correction} {XuLogWindow.Text}";
+                                                XuLogWindow.Text = $"\r\n{DateTime.Now:hh:mm:ss} down {upperThreshold} < Pdif: {pdif} = Pout: {current.PressureOut} - Pin:{current.PressureIn} - Correction: {correction} {XuLogWindow.Text}";
                                                 //Log(current);
                                                 current.BoosterSpeedOut = Decrease(pdif) / 20.0f;
                                                 //Log(current);
+                                                this.XuDelay.Interval = 10000;
                                             }
                                             else
                                             {
                                                 // keep speed.
                                                 //Keep();
+                                                XuLogWindow.Text = $"\r\n{DateTime.Now:hh:mm:ss} same Pdif: {pdif} = Pout: {current.PressureOut} - Pin:{current.PressureIn} - Correction: {correction} {XuLogWindow.Text}";
                                                 current.BoosterSpeedOut = Decrease(0) / 20.0f;
+                                                this.XuDelay.Interval = 20000;
                                             }
                                         }
 
@@ -557,7 +563,7 @@ namespace JordvarmeController
             e.Handled = true;
         }
 
-        private void XuWeBrowser_DocumentCompleted(object sender, WebBrowserDocumentCompletedEventArgs e)
+        private void XuWeBrowser_WebBrowserDocumentCompletedEventHandler(object sender, WebBrowserDocumentCompletedEventArgs e)
         {
             ((WebBrowser)sender).Document.Window.Error += new HtmlElementErrorEventHandler(Window_Error);
 
@@ -573,7 +579,7 @@ namespace JordvarmeController
 
             var data = sr.ReadToEnd().TrimStart();
 
-            XuLogWindow.Text = $"\r\n{DateTime.Now:mm:ss} {data.Substring(0, Math.Min(5, data.Length)).Replace("\r\n", "")} {XuLogWindow.Text}";
+            XuLogWindow.Text = $"\r\n{DateTime.Now:hh:mm:ss} {data.Substring(0, Math.Min(25, data.Length)).Replace("\r\n", "")} {XuLogWindow.Text}";
             XuLogWindow.Text = XuLogWindow.Text.Substring(0, Math.Min(XuLogWindow.Text.Length, 500));
 
             if (data.StartsWith("<div id=\"pos0\">") && EnableAnalyze)
@@ -588,11 +594,10 @@ namespace JordvarmeController
                 XuSchema_Click(sender, e);
             }
 
-            //if (data.StartsWith("OK"))
-            //{
-            //    XuStop_Click(sender, e);
-            //    //Thread.Sleep(10000);
-            //}
+            if (data.StartsWith("OK"))
+            {
+                MustRefresh = false;
+            }
 
             var tx = data;
             if (MustRefresh)

@@ -60,7 +60,7 @@
             this.XuWeBrowser.Size = new System.Drawing.Size(1067, 874);
             this.XuWeBrowser.TabIndex = 0;
             this.XuWeBrowser.Url = new System.Uri("https://cmi004096.cmi.ta.co.at/webi/schematic_files/1.cgi?_=1671478826623", System.UriKind.Absolute);
-            this.XuWeBrowser.DocumentCompleted += new System.Windows.Forms.WebBrowserDocumentCompletedEventHandler(this.XuWeBrowser_DocumentCompleted);
+            this.XuWeBrowser.DocumentCompleted += new System.Windows.Forms.WebBrowserDocumentCompletedEventHandler(this.XuWeBrowser_WebBrowserDocumentCompletedEventHandler);
             // 
             // XuLogin
             // 
